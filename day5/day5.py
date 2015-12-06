@@ -3,7 +3,7 @@ import re
 vowelsRegex = re.compile(".*([aeiou].*){3,}.*")
 doubleRegex = re.compile(".*([a-z])\\1+.*")
 illegalWords = re.compile(".*((ab)|(cd)|(pq)|(xy)).*")
-
+x#
 f = open("input.txt")
 line = f.readline().replace("\n", "")
 good_count = 0
