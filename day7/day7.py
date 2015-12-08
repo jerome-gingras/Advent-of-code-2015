@@ -1,64 +1,87 @@
 import re
+global nodes
+nodes = {}
 
-def newvalue(source_1, source_2, destination, operator):
-	if source_1 in values:
-		if source_2 == None or source_2.isdigit() or source_2 in values :
-			if operator == "NOT":
-				values[destination] = (~values[source_1]) & 65535
-			elif operator == "LSHIFT":
-				values[destination] = (values[source_1] << int(source_2) ) & 65535
-			elif operator == "RSHIFT":
-				values[destination] = values[source_1] >> int(source_2)
-			elif operator == "OR":
-				values[destination] = values[source_1] | values[source_2]
-			elif operator == "AND":
-				values[destination] = values[source_1] & values[source_2]
-			elif operator == "SET":
-				values[destination] = values[source_1]
-			if destination in pending_gates:
-				for infos in pending_gates.pop(destination):
-					newvalue(infos[0], infos[1], infos[2], infos[3])
-		else:
-			if source_2 in pending_gates:
-				pending_gates[source_2].append((source_1, source_2, destination, operator))
-			else:
-				pending_gates[source_2] = [(source_1, source_2, destination, operator)]
-	else:
-		if source_1 in pending_gates:
-			pending_gates[source_1].append((source_1, source_2, destination, operator))
-		else:
-			pending_gates[source_1] = [(source_1, source_2, destination, operator)]			
+class Node:
+    def __init__(self, name, left, right, operator):
+        self.value = 0
+        self.isvalid = False
+        self.name = name
+        self.leftsource = left
+        self.rightsource = right
+        self.left = None
+        self.right = None
+        self.operator = operator
+        
+    def get_value(self):
+        global nodes
+        if self.isvalid:
+            return self.value
+        if self.leftsource.isdigit():
+            self.left = int(self.leftsource)
+        else:
+            self.left = nodes[self.leftsource].get_value()
+        if self.rightsource != None:
+            if self.rightsource.isdigit():
+                self.right = int(self.rightsource)
+            else:
+                self.right = nodes[self.rightsource].get_value()
+        if self.operator == "SET":
+            self.value = self.left
+        elif self.operator == "NOT":
+            self.value = (~self.left) & 65535
+        elif self.operator == "LSHIFT":
+            self.value = (self.left << self.right ) & 65535
+        elif self.operator == "RSHIFT":
+            self.value = self.left >> self.right
+        elif self.operator == "OR":
+            self.value = self.left | self.right
+        elif self.operator == "AND":
+            self.value = self.left & self.right
+        self.isvalid = True
+        return self.value
 
+def create_node(line):
+    wires = valuesRegex.findall(line)
+    operator = operatorRegex.findall(line)
+    destination = ''
+    left = None
+    right = None
+    if len(operator) == 0:
+        operator = "SET"
+        destination = wires[1]
+        left = wires[0]
+    elif operator[0] == "NOT":
+        operator = operator[0]
+        destination = wires[1]
+        left = wires[0]
+    else:
+        operator = operator[0]
+        destination = wires[2]
+        left = wires[0]
+        right = wires[1]
+    return Node(destination, left, right, operator)
+    
+f = open("input.txt", "r")
 valuesRegex = re.compile("[a-z0-9]{1,}")
 operatorRegex = re.compile("[A-Z]{2,}")
-f = open("input.txt")
 line = f.readline()
-values = {}
-pending_gates = {}
 
+# Setup the node objects
 while line != '':
-	wires = valuesRegex.findall(line)
-	print wires
-	if len(wires) == 2:
-		if "NOT" in line:
-			newvalue(wires[0], None, wires[1], "NOT")
-		else:
-			if wires[0].isdigit():				
-				values[wires[1]] = int(wires[0])
-				if wires[1] in pending_gates:
-					for infos in pending_gates.pop(wires[1]):
-						newvalue(infos[0], infos[1], infos[2], infos[3])
-			else:
-				newvalue(wires[0], None, wires[1], "SET")
-	else:
-		if "LSHIFT" in line:
-			newvalue(wires[0], wires[1], wires[2], "LSHIFT")
-		elif "RSHIFT" in line:
-			newvalue(wires[0], wires[1], wires[2], "RSHIFT")
-		elif "OR" in line:
-			newvalue(wires[0], wires[1], wires[2], "OR")
-		elif "AND" in line:
-			newvalue(wires[0], wires[1], wires[2], "AND")
-	line = f.readline()
-print values
-print "Result: " + str(values["a"])
+    node = create_node(line)
+    nodes[node.name] = node
+    line = f.readline()
+    
+# Create the tree
+a = nodes['a'].get_value()
+print "Result part 1: " + str(a)
+
+for key, node in nodes.iteritems():
+    node.isvalid = False
+    
+nodes['b'].value = a
+nodes['b'].isvalid = True
+
+a = nodes['a'].get_value()
+print "Result part 2: " + str(a)
