@@ -1,23 +1,24 @@
 problem_input = "3113322113"
 
-
 def partition(input, iterations):
-    output = ""
+    output = []
     for i in xrange(iterations):
         last = input[0]
         count = 1
-        output = ""
+        output = []
     
         for c in input[1:]:
             if c == last:
                 count += 1
             else:
-                output += str(count) + last
+                output.append(str(count))
+                output.append(last)
                 last = c
                 count = 1
-        output += str(count) + last
-        input = output
-    return output
+        output.append(str(count))
+        output.append(last)
+        input = ''.join(output)
+    return input
 
 
 output = partition(problem_input, 40)
